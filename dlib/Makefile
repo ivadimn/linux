@@ -1,9 +1,11 @@
-all: lib 
+all: exe lib
 
-lib: solution.h solution.c
-	gcc -shared solution.c -fPIC -o libsolution.so 
+exe: solution.c
+	gcc solution.c -fPIC -ldl -o solution
+
+lib: shared.c
+	gcc -shared shared.c -fPIC -o libShared.so
 
 clean:
-	-rm libsolution.so 2>/dev/null
-
+	-rm solution libShared.so 2>/dev/null
 

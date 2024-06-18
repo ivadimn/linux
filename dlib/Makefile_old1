@@ -1,0 +1,11 @@
+all: exe lib
+
+exe: hello.h main.c
+	gcc main.c -fPIC -o hello
+
+lib: hello.h hello.c
+	gcc -shared hello.c -fPIC -o libhello.so
+
+clean:
+	-rm hello libhello.so 2>/dev/null
+
