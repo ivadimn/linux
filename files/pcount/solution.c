@@ -1,19 +1,18 @@
 #include <stddef.h>
-#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
 #include <sys/types.h>
-#include <sys/stat.h>
 #include <unistd.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <dirent.h>
 
 #define PATH_LEN 1024
 #define BUFF_LEN 4096
 
 
-pid_t get_ppid(pid_t pid) {
+int get_ppid(pid_t pid) {
 	char *saveptr;
 	char proc_status[PATH_LEN];
 	char buffer[BUFF_LEN];
@@ -38,23 +37,16 @@ pid_t get_ppid(pid_t pid) {
 
 	char *data = strtok_r(buffer, " ", &saveptr);
 	while(data) {
-		if(index == 3) {
-			ppid = atoi(data);
-			break;
+		if(index == 1) {
+			return (strcmp(data, "genenv") == 0) ? 1 : 0;  
 		}
 		index++;
 		data = strtok_r(NULL, " ", &saveptr);
 	}
-	return ppid;
+	return 0;
 }
 
 int main(int argc, char** argv) {
-    char cmdline[64];
-    char line[32];
-    snprintf(cmdline, 63, "pidof %s",argv[0]);
-    FILE *cmd = popen(cmdline, "r");
-    fgets(line, 32, cmd);
-    pid_t pid = strtoul(line, NULL, 10);
-	pclose(cmd);
-	printf("%d\n", get_ppid(pid));
+    printf("%d\n", get_ppid(10));
+	return 0;
 }
