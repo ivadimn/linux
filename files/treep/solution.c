@@ -49,12 +49,19 @@ pid_t get_ppid(pid_t pid) {
 }
 
 int main(int argc, char** argv) {
-    char cmdline[64];
-    char line[32];
-    snprintf(cmdline, 63, "pidof %s",argv[0]);
-    FILE *cmd = popen(cmdline, "r");
-    fgets(line, 32, cmd);
-    pid_t pid = strtoul(line, NULL, 10);
-	pclose(cmd);
-	printf("%d\n", get_ppid(pid));
+	pid_t pid = 0;
+
+	if (argc != 2) {
+		printf("Usage %s %s\n", argv[0], "<num_process>");
+		exit(1);
+	}
+	
+    pid = strtoul(argv[1], NULL, 10);
+	
+	do{
+		printf("%d\n", pid);
+		pid = get_ppid(pid);
+	} while (pid > 0);
+	
+	return 0;
 }
