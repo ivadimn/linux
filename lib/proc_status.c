@@ -1,8 +1,7 @@
 #include "proc_status.h"
-#include "str_dict.h"
 
 
-static dict_t* status = NULL;
+static status_t sts[STS_LEN];
 
 static void _parse_line(char* line) {
     char *pp = NULL;
