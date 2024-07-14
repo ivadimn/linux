@@ -1,13 +1,25 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <fcntl.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <signal.h>
+#include <errno.h>
+
+void sig_urg(int signal) 
+{
+    if (signal == SIGURG)
+    {
+        exit(EXIT_SUCCESS);
+    }
+}
 
 int main() {
-    int fd;
-        
+    
+    void (*funcptr)(int);
+
     switch (fork())         //превращение в фоновый процесс 
     {
         case -1: 
@@ -27,10 +39,17 @@ int main() {
 
     pid_t pid = getpid();
     fprintf(stdout, "%d\n", pid);
-
+    funcptr = signal(SIGURG, sig_urg);
+    if (funcptr == SIG_ERR)
+    {
+        fprintf(stdout, "Ошибка выполнения функции signal: %s\n", strerror(errno));
+    }
+    
     close(STDIN_FILENO);
     close(STDOUT_FILENO);
     close(STDERR_FILENO);
-
-    sleep(60);
+    while (1)
+    {
+        sleep(1);
+    }
 }
