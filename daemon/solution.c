@@ -16,7 +16,7 @@ void sig_urg(int signal)
     }
 }
 
-int main() {
+int main(/*int argc, char** argv*/) {
     
     void (*funcptr)(int);
 
