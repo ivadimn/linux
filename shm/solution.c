@@ -29,24 +29,32 @@ int* get_shmem(key_t key, size_t size, int flag)
 }
 
 
-int main(/*int argc, char** argv*/)
+int main(int argc, char** argv)
 {
     key_t source1, source2, dest_key;
     int *sh1 = NULL;
     int *sh2 = NULL;
     int *dest = NULL; 
 
-    source1 = 0x630202cf; //atol(argv[1]);
-    source2 =  0xc70202cf; //atol(argv[2]);
+    if(argc != 3) {
+        printf("\nPlease call:\n\t%s key1 key2\n", argv[0]);
+        return 1;
+    }
+    source1 = atoi(argv[1]);
+    source2 = atoi(argv[2]);
+    
+    dest_key = ftok(argv[0], 99);
 
     sh1 = get_shmem(source1, 0, SHM_MODE_READ);
     sh2 = get_shmem(source2, 0, SHM_MODE_READ);
+    dest = get_shmem(dest_key, MEM_SIZE, SHM_MODE | IPC_CREAT);
 
     for (size_t i = 0; i < 100; i++)
     {
-       printf("sh1: %d, sh2: %d\n", sh1[i], sh2[i]);
+       dest[i] = sh1[i] + sh2[i];
     }
-     
+   
+    printf("%d\n", dest_key);
 
     return 0;
 }

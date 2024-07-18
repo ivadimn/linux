@@ -49,7 +49,7 @@ int main(int argc, char** argv)
     }
 
     printf("address1 = %p, address2 = %p\n", (void*) sh1, (void*) sh2);
-    for (size_t i = 0; i < 10; i++)
+    for (size_t i = 0; i < 100; i++)
     {
         sh1[i] = i * 2;
         sh2[i] = i * 2 + 10;
