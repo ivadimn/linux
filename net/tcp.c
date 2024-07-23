@@ -6,12 +6,20 @@
 #include <netinet/in.h>
 #include <unistd.h>
 
+#define BAACKLOG 5
+
+int func(const void *arg1, const void* arg2)
+{
+    return *(char*) arg1 - *(char*)arg2;
+}
+
 int main(int argc, char** argv)
 {
     char buf[BUFSIZ];
     struct sockaddr_in addr, client_addr;
     int sz = 0;
     int sock_client;
+    socklen_t client_len;
 
 
     if (argc != 2)
@@ -39,20 +47,24 @@ int main(int argc, char** argv)
     }
 
     if (listen(sock_serv, 5) < 0)  {
-  		prinyf("Ошибка начала прослушивания сокета.\n");
+  		printf("Ошибка начала прослушивания сокета.\n");
         return -1;
  	}
-    
+    client_len = sizeof(client_addr);
+    sock_client = accept(sock_serv, (struct sockaddr*) &client_addr, &client_len);
     while (1)
     {
-        sock_client = accept(sock_serv, (struct sockaddr*) &client_addr, sizeof(client_addr);)
-        sz = read(sock_serv, buf, BUFF_SIZE);
-        buf[sz] = 0;
+        sz = read(sock_client, buf, BUFSIZ);
+        buf[sz-1] = 0;
         if (strcmp(buf, "OFF\n") == 0)
             break;
         printf("%s\n", buf);
+        qsort(buf, strlen(buf), sizeof(char), func);
+        write(sock_client, buf, strlen(buf) + 1);
     }
     close(sock_serv);    
+    
     return 0;
+
 
 }
