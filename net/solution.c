@@ -10,7 +10,7 @@
 
 int func(const void *arg1, const void* arg2)
 {
-    return *(char*) arg1 - *(char*)arg2;
+    return *(char*)arg2 - *(char*) arg1;
 }
 
 int main(int argc, char** argv)
@@ -55,10 +55,10 @@ int main(int argc, char** argv)
     while (1)
     {
         sz = read(sock_client, buf, BUFSIZ);
-        buf[sz-1] = 0;
-        if (strcmp(buf, "OFF\n") == 0)
+        if (buf[sz-1] == '\n')
+            buf[sz-1] = 0;
+        if (strcmp(buf, "OFF") == 0)
             break;
-        printf("%s\n", buf);
         qsort(buf, strlen(buf), sizeof(char), func);
         write(sock_client, buf, strlen(buf) + 1);
     }
