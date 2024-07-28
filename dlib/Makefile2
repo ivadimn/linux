@@ -1,6 +1,4 @@
-all: lib 
-
-lib: solution.h solution.c
+all: solution.c
 	gcc -shared solution.c -fPIC -o libsolution.so 
 
 clean:
