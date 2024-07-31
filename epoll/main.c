@@ -78,7 +78,7 @@ int main(int argc, char** argv)
     if (sock_listen_fd < 0)
         err_sys("Error creating socket:");
 
-    set_non_blocking(sock_listen_fd);    
+    //set_non_blocking(sock_listen_fd);    
     
     //задаём порт, тип адреса IP4, адрес для привязки - любой локальный адрес
     server_addr.sin_family = AF_INET;
@@ -122,7 +122,7 @@ int main(int argc, char** argv)
                     err_sys("Error accepting new connection: ");
 
                 set_non_blocking(sock_conn_fd)    ;
-                ev.events = EPOLLIN | EPOLLOUT | EPOLLET | EPOLLRDHUP;
+                ev.events = EPOLLIN | EPOLLET | EPOLLRDHUP | EPOLLOUT;
                 ev.data.fd = sock_conn_fd;  
                 if (epoll_ctl(epollfd, EPOLL_CTL_ADD, sock_conn_fd, &ev) < 0) {
      				err_quit("epoll_ctl: ");
@@ -142,7 +142,12 @@ int main(int argc, char** argv)
      				do_write(newsockfd);
 
     			if (events[i].events & EPOLLRDHUP)
-     				process_error(newsockfd);
+                {
+                    process_error(newsockfd);
+                    epoll_ctl(epollfd, EPOLL_CTL_DEL, newsockfd, NULL);
+                    shutdown(newsockfd, SHUT_RDWR);
+                }
+                    				
 
                 /*int rc = recv(newsockfd, buffer, MAX_MESSAGE_LEN, 0);
                 if (rc <= 0)
