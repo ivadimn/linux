@@ -5,8 +5,8 @@ CFLAGS=-Wall -Wextra -Wpedantic
 
 all: build
 
-build: main.c log.c
-	$(CC) $(CFLAGS) main.c log.c -o eserv
+build: server.c log.c
+	$(CC) $(CFLAGS) server.c log.c -o eserv -luring
 
 clean:
 	rm -rf eserv

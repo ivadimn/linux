@@ -32,6 +32,7 @@ int main(int argc, char** argv)
 {
     struct sockaddr_in server_addr = {0}, client_addr;
     int sock_listen_fd = 0;
+    struct io_uring_cqe* cqes[MAX_CONNECTIONS];
 
     if (argc != 2)
         err_quit("Please give a port number: ./eserv port_number\n");
@@ -72,18 +73,39 @@ int main(int argc, char** argv)
         err_sys("Error io_uring_queue_init_params: ");
     }
 
-    add_accept(&ring, sock_listen_fd, &client_addr, &client_len);
+    add_accept(&ring, sock_listen_fd, (struct sockaddr*)&client_addr, &client_len);
     while (1)
     {
-        /* code */
-    }
-    
+        if(io_uring_submit(&ring) < 0)
+            err_sys("Error io_uring_submit: ");
 
+        struct io_uring_cqe* cqe;
+        if(io_uring_wait_cqe(&ring, &cqe) < 0)
+            err_sys("Error io_uring_submit: ");
+
+        int count = io_uring_peek_batch_cqe(&ring, cqes, MAX_CONNECTIONS);
+
+        for (int i = 0; i < count; i++)
+        {
+            int result = cqes[i]->res;
+            conn_info *ud = (struct conn_info*) cqes[i]->user_data;
+
+            if (ud->type == ACCEPT)
+            {
+                //add_socket_read(&ring, result, MAX_MESSAGE_LEN);
+                printf("get new connection %d\n", result);
+                add_accept(&ring, sock_listen_fd, (struct sockaddr*)&client_addr, &client_len);
+            }
+            
+            io_uring_cqe_seen(&ring, cqes[i]);
+        }
+    }
+    return 0;
 }
 
 void add_accept(struct io_uring *ring, int fd, struct sockaddr* client_addr, socklen_t* client_len)
 {
-    struct io_uring_seq *sqe = io_uring_get_sqe(&ring);
+    struct io_uring_sqe *sqe = io_uring_get_sqe(ring);
     io_uring_prep_accept(sqe, fd, client_addr, client_len, 0);
     conn_info *conn = &conns[fd];
     conn->fd = fd;
