@@ -92,9 +92,19 @@ int main(int argc, char** argv)
 
             if (ud->type == ACCEPT)
             {
-                //add_socket_read(&ring, result, MAX_MESSAGE_LEN);
-                printf("get new connection %d\n", result);
+                add_socket_read(&ring, result, MAX_MESSAGE_LEN);
                 add_accept(&ring, sock_listen_fd, (struct sockaddr*)&client_addr, &client_len);
+            }
+            else if (ud->type == READ)
+            {
+                if (result <= 0)
+                    shutdown(ud->fd, SHUT_RDWR);
+                else
+                    add_socket_write(&ring, ud->fd, result);    
+            }
+            else if (ud->type == WRITE)
+            {
+                add_socket_read(&ring, ud->fd, MAX_MESSAGE_LEN);
             }
             
             io_uring_cqe_seen(&ring, cqes[i]);
@@ -116,12 +126,24 @@ void add_accept(struct io_uring *ring, int fd, struct sockaddr* client_addr, soc
 
 void add_socket_read(struct io_uring *ring, int fd, size_t size)
 {
+    struct io_uring_sqe *sqe = io_uring_get_sqe(ring);
+    io_uring_prep_read(sqe, fd, bufs[fd], size, 0);
+    conn_info *conn = &conns[fd];
+    conn->fd = fd;
+    conn->type = READ;
 
+    io_uring_sqe_set_data(sqe, conn);
 }
 
 void add_socket_write(struct io_uring *ring, int fd, size_t size)
 {
+    struct io_uring_sqe *sqe = io_uring_get_sqe(ring);
+    io_uring_prep_write(sqe, fd, bufs[fd], size, 0);
+    conn_info *conn = &conns[fd];
+    conn->fd = fd;
+    conn->type = WRITE;
 
+    io_uring_sqe_set_data(sqe, conn);
 }
 
 
