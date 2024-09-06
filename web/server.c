@@ -68,7 +68,9 @@ int main(int argc, char** argv)
     struct io_uring_params params;
     memset(&params, 0, sizeof(params));
 
-    if(io_uring_queue_init_params(4096, &ring, &params) < 0)
+    // инициализация io_uring, params передаются пустые и заполняются
+    // в случае успешной инициализации
+    if(io_uring_queue_init_params(MAX_CONNECTIONS, &ring, &params) < 0)
     {
         err_sys("Error io_uring_queue_init_params: ");
     }
@@ -76,28 +78,38 @@ int main(int argc, char** argv)
     add_accept(&ring, sock_listen_fd, (struct sockaddr*)&client_addr, &client_len);
     while (1)
     {
+        // подписываемся на добавленные в sqe события 
         if(io_uring_submit(&ring) < 0)
             err_sys("Error io_uring_submit: ");
 
         struct io_uring_cqe* cqe;
+        // ожидаем наступление событий на котрые мы подписались в sqe
+        // выполненные события помещаются в cqe
         if(io_uring_wait_cqe(&ring, &cqe) < 0)
             err_sys("Error io_uring_submit: ");
 
+        // получаем массив состоявшихся событий в количестве count и кладём их в буфер cqes
         int count = io_uring_peek_batch_cqe(&ring, cqes, MAX_CONNECTIONS);
 
         for (int i = 0; i < count; i++)
         {
+            // значение результата зависит от типа операции
             int result = cqes[i]->res;
             conn_info *ud = (struct conn_info*) cqes[i]->user_data;
 
+            // если пришло новое соединение
             if (ud->type == ACCEPT)
             {
+                // добавляем в очередь для чтения клиента
                 add_socket_read(&ring, result, MAX_MESSAGE_LEN);
+                // серверный сокет снова добавляем в очередь для приёма соединений
                 add_accept(&ring, sock_listen_fd, (struct sockaddr*)&client_addr, &client_len);
             }
             else if (ud->type == READ)
             {
+                // здесь в result лежит количество прочитанных байт
                 if (result <= 0)
+                    // если прочитали 0 то закрываем соединение
                     shutdown(ud->fd, SHUT_RDWR);
                 else
                     add_socket_write(&ring, ud->fd, result);    
@@ -113,10 +125,15 @@ int main(int argc, char** argv)
     return 0;
 }
 
+//подготовить серверный сокет к приёму соединенйи
 void add_accept(struct io_uring *ring, int fd, struct sockaddr* client_addr, socklen_t* client_len)
 {
+    // получить экземпляр очереди sqe для заполнения
     struct io_uring_sqe *sqe = io_uring_get_sqe(ring);
+    //готовим fd к приёму соединений 
+    //в client_addr положится адрес клиента
     io_uring_prep_accept(sqe, fd, client_addr, client_len, 0);
+    // записываем общую для sqe и cqe область данных информацию о серверном сокете и его состоянии
     conn_info *conn = &conns[fd];
     conn->fd = fd;
     conn->type = ACCEPT;
@@ -126,23 +143,29 @@ void add_accept(struct io_uring *ring, int fd, struct sockaddr* client_addr, soc
 
 void add_socket_read(struct io_uring *ring, int fd, size_t size)
 {
+    // получить экземпляр очереди sqe для заполнения
     struct io_uring_sqe *sqe = io_uring_get_sqe(ring);
+    //готовим fd к чтению 
+    // читать будем в bufs - предаллоцированный массиы буферов по количеству соединений
     io_uring_prep_read(sqe, fd, bufs[fd], size, 0);
+    // записываем общую для sqe и cqe область данных информацию сокете из которого будем читать
     conn_info *conn = &conns[fd];
     conn->fd = fd;
     conn->type = READ;
-
     io_uring_sqe_set_data(sqe, conn);
 }
 
 void add_socket_write(struct io_uring *ring, int fd, size_t size)
 {
+    // получить экземпляр очереди sqe для заполнения
     struct io_uring_sqe *sqe = io_uring_get_sqe(ring);
+    //готовим fd к записи 
+    // писать будем из bufs в котрый раньше читали
     io_uring_prep_write(sqe, fd, bufs[fd], size, 0);
+    // записываем общую для sqe и cqe область данных информацию сокете в котрый будем писать
     conn_info *conn = &conns[fd];
     conn->fd = fd;
     conn->type = WRITE;
-
     io_uring_sqe_set_data(sqe, conn);
 }
 
