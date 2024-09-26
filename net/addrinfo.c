@@ -1,3 +1,15 @@
+/**
+ * @file addrinfo.c
+ * @author ivadimn.ru
+ * @brief 
+ * @version 0.1
+ * @date 2024-09-25
+ * 
+ * @copyright Copyright (c) 2024
+ * программа определяет перечень возможныз ip адресов
+ * по доменному шмени
+ */
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -7,8 +19,22 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 
+/**
+ * основная структура для работы с функцией getaddrinfo
+ struct addrinfo {
+    int ai_flags;     дополнительные флаги
+    int ai_family;
+    int ai_socktype;
+    int ai_protocol;
+    socklen_t ai_addrlen;
+    struct sockaddr *ai_addr;
+    char *ai_canonname;
+    struct addrinfo *ai_next;
+ };
+ */
+
 #ifndef AI_ALL
-#define AI_ALL 0x0100
+#define AI_ALL 0x0100   // для поля 
 #endif
 
 void ipv4_print(struct sockaddr *addr)
@@ -26,6 +52,11 @@ void ipv6_print(struct sockaddr *addr)
     printf("IPv4 Address: %s\n", ipv6); 
 }
 
+
+/*
+ выдаёт тип импользуемого протокола
+ уровня IP
+*/
 char* what_protocol(int protocol)
 {
     switch (protocol)
@@ -48,9 +79,32 @@ char* what_protocol(int protocol)
     return "Unknown protocol";
 }
 
+/*
+ выдаёт тип сокета
+ 
+*/
+char* what_socket(int socket)
+{
+    switch (socket)
+    {
+    case 0:
+        return "Any socket type";
+    case SOCK_STREAM:
+        return "SOCK_STREAM";
+    case SOCK_DGRAM:
+        return "SOCK_DGRAM";    
+           
+    default:
+        break;
+    }
+    return "Unknown socket";
+}
+
+
 int main(int argc, char** argv)
 {
-    struct addrinfo hints;
+    
+    struct addrinfo hints;  
     struct addrinfo *result, *rp;
     struct sockaddr_in *addr4;
     struct sockaddr_in6 *addr6;
@@ -62,6 +116,8 @@ int main(int argc, char** argv)
         return -1;
     }
 
+    //передвызовом hints обнуляется задаются только флаги ai_flags
+    //
     memset(&hints, 0, sizeof(struct addrinfo));
     hints.ai_flags = AI_ALL;
     s = getaddrinfo(argv[1], NULL, &hints, &result);
@@ -90,6 +146,7 @@ int main(int argc, char** argv)
             printf("Unknown internet address family\n");
         }
         printf("Protocol: %s\n", what_protocol(rp->ai_protocol));
+        printf("Socket: %s\n", what_socket(rp->ai_socktype));
         rp = rp->ai_next;
         printf("\n");
     }
