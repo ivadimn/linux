@@ -4,6 +4,7 @@
 
 #include <gtk/gtk.h>
 
+/* это для c++ что не искажались имена*/
 G_BEGIN_DECLS
 
 /* Type declaration */
